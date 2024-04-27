@@ -62,30 +62,4 @@ public class RandomGenerator {
 
 		return buffer.toString();
 	}
-
-	/**
-	 * @return An instance of Car with the car type decided probabilistically,
-	 *         according to predefined proportions
-	 */
-	public static Car generateRandomCar() {
-		// Hard-coded:
-		// ELECTRIC (prob: 5%),
-		// SMALL (prob: 20%),
-		// LARGE (prob: 10%),
-		// REGULAR (default).
-
-		CarType type;
-		int number = rand.nextInt(100);
-
-		if (number < 5)
-			type = CarType.ELECTRIC;
-		else if (number >= 5 && number < 25)
-			type = CarType.SMALL;
-		else if (number >= 25 && number < 35)
-			type = CarType.LARGE;
-		else
-			type = CarType.REGULAR;
-
-		return new Car(type, generateRandomString(3));
-	}
 }

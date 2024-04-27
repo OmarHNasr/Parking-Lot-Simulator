@@ -5,14 +5,24 @@
 public class Simulator {
 
 	/**
+	 * Length of car plate numbers
+	 */
+	public static final int PLATE_NUM_LENGTH = 3;
+
+	/**
+	 * Number of seconds in one hour
+	 */
+	public static final int NUM_SECONDS_IN_1H = 3600;
+
+	/**
 	 * Maximum duration a car can be parked in the lot
 	 */
-	public static final int MAX_PARKING_DURATION = 8 * 3600;
+	public static final int MAX_PARKING_DURATION = 8 * NUM_SECONDS_IN_1H;
 
 	/**
 	 * Total duration of the simulation in (simulated) seconds
 	 */
-	public static final int SIMULATION_DURATION = 24 * 3600;
+	public static final int SIMULATION_DURATION = 24 * NUM_SECONDS_IN_1H;
 
 	/**
 	 * The probability distribution for a car leaving the lot based on the duration
@@ -23,14 +33,12 @@ public class Simulator {
 
 	/**
 	 * The probability that a car would arrive at any given (simulated) second
-	 * This probability is calculated in the constructor based on the perHourArrivalRate
-	 * passed to the constructor.
 	 */
 	private Rational probabilityOfArrivalPerSec;
 
 	/**
 	 * The simulation clock. Initially the clock should be set to zero; the clock
-	 * should then be incremented by one unit after each (simulated) second.
+	 * should then be incremented by one unit after each (simulated) second
 	 */
 	private int clock;
 
@@ -58,12 +66,18 @@ public class Simulator {
 	private Queue<Spot> outgoingQueue;
 
 	/**
-	 * @param lot                 is the parking lot to be simulated
-	 * @param perHourArrivalRate  is the HOURLY rate at which cars show up in front of the lot
-	 * @param steps               is the total number of steps for simulation
+	 * @param lot   is the parking lot to be simulated
+	 * @param steps is the total number of steps for simulation
 	 */
 	public Simulator(ParkingLot lot, int perHourArrivalRate, int steps) {
-
+	
+		if(lot == null){
+			throw new NullPointerException();
+		}
+		if(perHourArrivalRate < 0 || steps <= 0){
+			throw new IndexOutOfBoundsException();
+		}
+		
 		this.lot = lot;
 
 		this.steps = steps;
@@ -78,120 +92,47 @@ public class Simulator {
 
 	}
 
+
 	/**
 	 * Simulate the parking lot for the number of steps specified by the steps
-	 * instance variable.
-	 * In this method, you will implement the algorithm shown in Figure 3 of the A2 description.
+	 * instance variable
+	 * NOTE: Make sure your implementation of simulate() uses peek() from the Queue interface.
 	 */
 	public void simulate() {
-
+	
 		this.clock = 0;
 
 		while (clock < steps) {
 	
 			if(RandomGenerator.eventOccurred(probabilityOfArrivalPerSec)){
-				Spot tempSpot = new Spot(RandomGenerator.generateRandomCar(), clock);
-				incomingQueue.enqueue(tempSpot);
+				incomingQueue.enqueue(new Spot(new Car(RandomGenerator.generateRandomString(6)), clock));
 			} 
 			
-		for(int i=0; i<lot.getNumRows(); i++){
-			for(int j=0; j<lot.getNumSpotsPerRow(); j++){
-				if(lot.getSpotAt(i, j) != null){
-					if(clock - lot.getSpotAt(i, j).getTimestamp() >= 28800){
-						outgoingQueue.enqueue(lot.getSpotAt(i, j));
-						lot.remove(i, j);
-					}else{
-						if(RandomGenerator.eventOccurred(departurePDF.pdf(
-										clock-lot.getSpotAt(i, j).getTimestamp()))){
-						outgoingQueue.enqueue(lot.getSpotAt(i, j));
-						lot.remove(i, j);	
+			for(int i=0; i<lot.getOccupancy(); i++){
+				if(lot.getSpotAt(i) != null){
+					if(clock - lot.getSpotAt(i).getTimestamp() >= 28800){
+						outgoingQueue.enqueue(lot.getSpotAt(i));
+						lot.remove(i);
+					}else if(RandomGenerator.eventOccurred(departurePDF.pdf(clock-lot.getSpotAt(i).getTimestamp()))){
+							outgoingQueue.enqueue(lot.getSpotAt(i));
+							lot.remove(i);
 						}
 					}
 				}
+			if(!incomingQueue.isEmpty() && lot.attemptParking(incomingQueue.peek().getCar(), incomingQueue.peek().getTimestamp())){
+				
+				incomingQueue.dequeue();
 			}
-		}
-		
-		if(!incomingQueue.isEmpty()){
-			Spot tempSpot = incomingQueue.dequeue();
-			if(!lot.attemptParking(tempSpot.getCar(), tempSpot.getTimestamp())){
-				LinkedQueue<Spot> tempQueue = new LinkedQueue<Spot>();
-				tempQueue.enqueue(tempSpot);
-				while(!incomingQueue.isEmpty()){
-					tempQueue.enqueue(incomingQueue.dequeue());
-				}
-				incomingQueue = tempQueue;
-			}else{
-				System.out.println(tempSpot.getCar() + " ENTERED at timestep " + clock + "; occupancy is at " +
-								lot.getTotalOccupancy());
+				
+			if(!outgoingQueue.isEmpty()){
+				outgoingQueue.dequeue();
 			}
-		}
-		
-		if(!outgoingQueue.isEmpty()){
-			Spot tempSpot = outgoingQueue.dequeue();
-			System.out.println(tempSpot.getCar() + " EXITED at timestep " + clock + "; occupancy is at " +
-								lot.getTotalOccupancy());
-		}
-		
+			
 			clock++;
 		}
 	}
 
-	/**
-	 * <b>main</b> of the application. The method first reads from the standard
-	 * input the name of the parking-lot design. Next, it simulates the parking lot
-	 * for a number of steps (this number is specified by the steps parameter). At
-	 * the end, the method prints to the standard output information about the
-	 * instance of the ParkingLot just created.
-	 * 
-	 * @param args command lines parameters (not used in the body of the method)
-	 * @throws Exception
-	 */
-
-	public static void main(String args[]) throws Exception {
-
-		StudentInfo.display();
-		
-		if (args.length < 2) {
-			System.out.println("Usage: java Simulator <lot-design filename> <hourly rate of arrival>");
-			System.out.println("Example: java Simulator parking.inf 11");
-			return;
+		public int getIncomingQueueSize() {
+			return incomingQueue.size();
 		}
-
-		if (!args[1].matches("\\d+")) {
-			System.out.println("The hourly rate of arrival should be a positive integer!");
-			return;
-		}
-
-		ParkingLot lot = new ParkingLot(args[0]);
-
-		System.out.println("Total number of parkable spots (capacity): " + lot.getTotalCapacity());
-
-		Simulator sim = new Simulator(lot, Integer.parseInt(args[1]), SIMULATION_DURATION);
-
-		long start, end;
-
-		System.out.println("=== SIMULATION START ===");
-		start = System.currentTimeMillis();
-		sim.simulate();
-		end = System.currentTimeMillis();
-		System.out.println("=== SIMULATION END ===");
-
-		System.out.println();
-
-		System.out.println("Simulation took " + (end - start) + "ms.");
-
-		System.out.println();
-
-		int count = 0;
-
-		// The Queue interface does not provide a method to get the size of the queue.
-		// We thus have to dequeue all the elements to count how many elements the queue has!
-		
-		while (!sim.incomingQueue.isEmpty()) {
-			sim.incomingQueue.dequeue();
-			count++;
-		}
-
-		System.out.println("Length of car queue at the front at the end of simulation: " + count);
-	}
 }

@@ -2,10 +2,12 @@
  * @author Marcel Turcotte, Guy-Vincent Jourdan and Mehrdad Sabetzadeh
  *         (University of Ottawa)
  * 
- *         The implementation of this class is complete. You do *not* need to
- *         change this class in this assignment.
  * 
  */
+
+// TODO:
+// 1) keep track of size and implement a size() method
+// 2) write a peek method
 
 public class LinkedQueue<D> implements Queue<D> {
 
@@ -21,9 +23,11 @@ public class LinkedQueue<D> implements Queue<D> {
 
 	private Elem<D> front;
 	private Elem<D> rear;
+	private int size;
 
 	public LinkedQueue() {
 		front = rear = null;
+		size = 0;
 	}
 
 	public boolean isEmpty() {
@@ -47,6 +51,7 @@ public class LinkedQueue<D> implements Queue<D> {
 			rear.next = newElem;
 			rear = newElem;
 		}
+		size++;
 	}
 
 	public D dequeue() {
@@ -63,7 +68,16 @@ public class LinkedQueue<D> implements Queue<D> {
 		} else {
 			front = front.next;
 		}
+		size--;
 		return returnedValue;
+	}
+
+	public D peek() {
+		return front.value;
+	}
+
+	public int size() {
+		return size;
 	}
 
 	public String toString() {
