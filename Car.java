@@ -1,10 +1,3 @@
-/**
- * @author Mehrdad Sabetzadeh, University of Ottawa
- * 
- *         The implementation of this class is complete. You do *not* need to
- *         change this class in this assignment.
- * 
- */
 public class Car {
 
 	/**
